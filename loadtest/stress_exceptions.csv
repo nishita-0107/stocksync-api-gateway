@@ -1,0 +1,121 @@
+Count,Message,Traceback,Nodes
+3154,Sample larger than population or is negative,"  File ""C:\Users\hp\AppData\Roaming\Python\Python314\site-packages\locust\user\task.py"", line 363, in run
+    self.execute_next_task()
+    ~~~~~~~~~~~~~~~~~~~~~~^^
+  File ""C:\Users\hp\AppData\Roaming\Python\Python314\site-packages\locust\user\task.py"", line 396, in execute_next_task
+    self.execute_task(self._task_queue.popleft())
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""C:\Users\hp\AppData\Roaming\Python\Python314\site-packages\locust\user\task.py"", line 513, in execute_task
+    task(self.user)
+    ~~~~^^^^^^^^^^^
+  File ""d:\API_SD\SD_project\loadtest\locustfile.py"", line 154, in transfer
+    src, dst = random.sample(WAREHOUSES, 2)
+               ~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File ""C:\Python314\Lib\random.py"", line 436, in sample
+    raise ValueError(""Sample larger than population or is negative"")
+",local
+4152,Cannot choose from an empty sequence,"  File ""C:\Users\hp\AppData\Roaming\Python\Python314\site-packages\locust\user\task.py"", line 363, in run
+    self.execute_next_task()
+    ~~~~~~~~~~~~~~~~~~~~~~^^
+  File ""C:\Users\hp\AppData\Roaming\Python\Python314\site-packages\locust\user\task.py"", line 396, in execute_next_task
+    self.execute_task(self._task_queue.popleft())
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""C:\Users\hp\AppData\Roaming\Python\Python314\site-packages\locust\user\task.py"", line 513, in execute_task
+    task(self.user)
+    ~~~~^^^^^^^^^^^
+  File ""d:\API_SD\SD_project\loadtest\locustfile.py"", line 150, in goods_in
+    self.move(""receive"", {""sku"": random.choice(SKUS), ""warehouse"": random.choice(WAREHOUSES), ""qty"": random.randint(1, 5)})
+                                 ~~~~~~~~~~~~~^^^^^^
+  File ""C:\Python314\Lib\random.py"", line 353, in choice
+    raise IndexError('Cannot choose from an empty sequence')
+",local
+2093,Cannot choose from an empty sequence,"  File ""C:\Users\hp\AppData\Roaming\Python\Python314\site-packages\locust\user\task.py"", line 363, in run
+    self.execute_next_task()
+    ~~~~~~~~~~~~~~~~~~~~~~^^
+  File ""C:\Users\hp\AppData\Roaming\Python\Python314\site-packages\locust\user\task.py"", line 396, in execute_next_task
+    self.execute_task(self._task_queue.popleft())
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""C:\Users\hp\AppData\Roaming\Python\Python314\site-packages\locust\user\task.py"", line 513, in execute_task
+    task(self.user)
+    ~~~~^^^^^^^^^^^
+  File ""d:\API_SD\SD_project\loadtest\locustfile.py"", line 164, in lookup
+    self.get(f""/api/inventory/{random.choice(SKUS)}"", ""GET /api/inventory/[sku]"")
+                               ~~~~~~~~~~~~~^^^^^^
+  File ""C:\Python314\Lib\random.py"", line 353, in choice
+    raise IndexError('Cannot choose from an empty sequence')
+",local
+1036,Cannot choose from an empty sequence,"  File ""C:\Users\hp\AppData\Roaming\Python\Python314\site-packages\locust\user\task.py"", line 363, in run
+    self.execute_next_task()
+    ~~~~~~~~~~~~~~~~~~~~~~^^
+  File ""C:\Users\hp\AppData\Roaming\Python\Python314\site-packages\locust\user\task.py"", line 396, in execute_next_task
+    self.execute_task(self._task_queue.popleft())
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""C:\Users\hp\AppData\Roaming\Python\Python314\site-packages\locust\user\task.py"", line 513, in execute_task
+    task(self.user)
+    ~~~~^^^^^^^^^^^
+  File ""d:\API_SD\SD_project\loadtest\locustfile.py"", line 159, in cycle_count
+    self.move(""adjust"", {""sku"": random.choice(SKUS), ""warehouse"": random.choice(WAREHOUSES),
+                                ~~~~~~~~~~~~~^^^^^^
+  File ""C:\Python314\Lib\random.py"", line 353, in choice
+    raise IndexError('Cannot choose from an empty sequence')
+",local
+4118,Cannot choose from an empty sequence,"  File ""C:\Users\hp\AppData\Roaming\Python\Python314\site-packages\locust\user\task.py"", line 363, in run
+    self.execute_next_task()
+    ~~~~~~~~~~~~~~~~~~~~~~^^
+  File ""C:\Users\hp\AppData\Roaming\Python\Python314\site-packages\locust\user\task.py"", line 396, in execute_next_task
+    self.execute_task(self._task_queue.popleft())
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""C:\Users\hp\AppData\Roaming\Python\Python314\site-packages\locust\user\task.py"", line 513, in execute_task
+    task(self.user)
+    ~~~~^^^^^^^^^^^
+  File ""d:\API_SD\SD_project\loadtest\locustfile.py"", line 133, in view_item
+    sku = random.choice(SKUS) if random.random() < 0.6 else random.choice(SEEDED_SKUS)
+          ~~~~~~~~~~~~~^^^^^^
+  File ""C:\Python314\Lib\random.py"", line 353, in choice
+    raise IndexError('Cannot choose from an empty sequence')
+",local
+5200,Cannot choose from an empty sequence,"  File ""C:\Users\hp\AppData\Roaming\Python\Python314\site-packages\locust\user\task.py"", line 363, in run
+    self.execute_next_task()
+    ~~~~~~~~~~~~~~~~~~~~~~^^
+  File ""C:\Users\hp\AppData\Roaming\Python\Python314\site-packages\locust\user\task.py"", line 396, in execute_next_task
+    self.execute_task(self._task_queue.popleft())
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""C:\Users\hp\AppData\Roaming\Python\Python314\site-packages\locust\user\task.py"", line 513, in execute_task
+    task(self.user)
+    ~~~~^^^^^^^^^^^
+  File ""d:\API_SD\SD_project\loadtest\locustfile.py"", line 138, in place_order
+    self.move(""ship"", {""sku"": random.choice(SKUS), ""warehouse"": random.choice(WAREHOUSES),
+                              ~~~~~~~~~~~~~^^^^^^
+  File ""C:\Python314\Lib\random.py"", line 353, in choice
+    raise IndexError('Cannot choose from an empty sequence')
+",local
+2705,Cannot choose from an empty sequence,"  File ""C:\Users\hp\AppData\Roaming\Python\Python314\site-packages\locust\user\task.py"", line 363, in run
+    self.execute_next_task()
+    ~~~~~~~~~~~~~~~~~~~~~~^^
+  File ""C:\Users\hp\AppData\Roaming\Python\Python314\site-packages\locust\user\task.py"", line 396, in execute_next_task
+    self.execute_task(self._task_queue.popleft())
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""C:\Users\hp\AppData\Roaming\Python\Python314\site-packages\locust\user\task.py"", line 513, in execute_task
+    task(self.user)
+    ~~~~^^^^^^^^^^^
+  File ""d:\API_SD\SD_project\loadtest\locustfile.py"", line 133, in view_item
+    sku = random.choice(SKUS) if random.random() < 0.6 else random.choice(SEEDED_SKUS)
+                                                            ~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File ""C:\Python314\Lib\random.py"", line 353, in choice
+    raise IndexError('Cannot choose from an empty sequence')
+",local
+774,Cannot choose from an empty sequence,"  File ""C:\Users\hp\AppData\Roaming\Python\Python314\site-packages\locust\user\task.py"", line 363, in run
+    self.execute_next_task()
+    ~~~~~~~~~~~~~~~~~~~~~~^^
+  File ""C:\Users\hp\AppData\Roaming\Python\Python314\site-packages\locust\user\task.py"", line 396, in execute_next_task
+    self.execute_task(self._task_queue.popleft())
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""C:\Users\hp\AppData\Roaming\Python\Python314\site-packages\locust\user\task.py"", line 513, in execute_task
+    task(self.user)
+    ~~~~^^^^^^^^^^^
+  File ""d:\API_SD\SD_project\loadtest\locustfile.py"", line 179, in deliver
+    self.move(""receive"", {""sku"": random.choice(SKUS), ""warehouse"": random.choice(WAREHOUSES),
+                                 ~~~~~~~~~~~~~^^^^^^
+  File ""C:\Python314\Lib\random.py"", line 353, in choice
+    raise IndexError('Cannot choose from an empty sequence')
+",local

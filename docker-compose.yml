@@ -1,0 +1,100 @@
+name: smart-gateway
+
+x-backend: &backend
+  build: ./services/backend
+  image: smart-gateway-inventory-backend
+  restart: unless-stopped
+  depends_on:
+    postgres: { condition: service_healthy }
+
+x-gateway-env: &gateway-env
+  REDIS_URL: redis://redis:6379
+  DATABASE_URL: postgres://gateway:gateway@postgres:5432/gateway
+  JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+  LOG_LEVEL: info
+  # API keys, format key:tier:name (tiers: free, pro, admin + business roles storefront, supplier, scanner)
+  API_KEYS: ${API_KEYS:-demo-free-key:free:demo-free,demo-pro-key:pro:demo-pro,demo-admin-key:admin:demo-admin,demo-storefront-key:storefront:web-storefront,demo-supplier-key:supplier:acme-supplies,demo-scanner-key:scanner:wh-scanner}
+
+# Inventory backends share the gateway's Postgres server, in their own "inventory" schema.
+x-backend-env: &backend-env
+  DATABASE_URL: postgres://gateway:gateway@postgres:5432/gateway
+  DB_POOL_MAX: "8"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: gateway
+      POSTGRES_PASSWORD: gateway
+      POSTGRES_DB: gateway
+    ports: ["5433:5432"]
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gateway -d gateway"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "256mb", "--maxmemory-policy", "noeviction"]
+    ports: ["6380:6379"]
+    volumes: [redisdata:/data]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  gateway:
+    build: ./gateway
+    restart: unless-stopped
+    ports: ["8080:8080"]
+    environment:
+      <<: *gateway-env
+      GATEWAY_ID: gateway-1
+      # rate limits per business role; raise them to stress the backends instead of the limiter
+      RL_STOREFRONT_CAPACITY: ${RL_STOREFRONT_CAPACITY:-1000}
+      RL_STOREFRONT_REFILL: ${RL_STOREFRONT_REFILL:-300}
+      RL_SCANNER_CAPACITY: ${RL_SCANNER_CAPACITY:-200}
+      RL_SCANNER_REFILL: ${RL_SCANNER_REFILL:-50}
+      RL_SUPPLIER_CAPACITY: ${RL_SUPPLIER_CAPACITY:-30}
+      RL_SUPPLIER_REFILL: ${RL_SUPPLIER_REFILL:-5}
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      inventory-1: { condition: service_started }
+      stock-1: { condition: service_started }
+
+  worker:
+    build: ./gateway
+    command: ["node", "src/worker.js"]
+    restart: unless-stopped
+    environment: *gateway-env
+    deploy:
+      replicas: 2
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+
+  inventory-1:
+    <<: *backend
+    environment: { <<: *backend-env, SERVICE_NAME: inventory, INSTANCE_ID: inventory-1 }
+  inventory-2:
+    <<: *backend
+    environment: { <<: *backend-env, SERVICE_NAME: inventory, INSTANCE_ID: inventory-2 }
+  inventory-3:
+    <<: *backend
+    environment: { <<: *backend-env, SERVICE_NAME: inventory, INSTANCE_ID: inventory-3 }
+  stock-1:
+    <<: *backend
+    environment: { <<: *backend-env, SERVICE_NAME: stock, INSTANCE_ID: stock-1 }
+  stock-2:
+    <<: *backend
+    environment: { <<: *backend-env, SERVICE_NAME: stock, INSTANCE_ID: stock-2 }
+
+volumes:
+  pgdata:
+  redisdata:

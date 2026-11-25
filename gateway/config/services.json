@@ -1,0 +1,83 @@
+{
+  "inventory": {
+    "prefix": "/api/inventory",
+    "auth": "optional",
+    "strategy": "round-robin",
+    "cacheTtlSeconds": 5,
+    "timeoutMs": 3000,
+    "retries": 2,
+    "cost": 1,
+    "permissions": {
+      "POST /": [
+        "scanner",
+        "admin"
+      ],
+      "PATCH /*": [
+        "scanner",
+        "admin"
+      ],
+      "DELETE /*": [
+        "admin"
+      ]
+    },
+    "instances": [
+      {
+        "id": "inventory-1",
+        "url": "http://inventory-1:3000"
+      },
+      {
+        "id": "inventory-2",
+        "url": "http://inventory-2:3000"
+      },
+      {
+        "id": "inventory-3",
+        "url": "http://inventory-3:3000"
+      }
+    ]
+  },
+  "stock": {
+    "prefix": "/api/stock",
+    "auth": "required",
+    "strategy": "least-connections",
+    "cacheTtlSeconds": 0,
+    "invalidates": [
+      "inventory"
+    ],
+    "timeoutMs": 3000,
+    "retries": 1,
+    "cost": 2,
+    "permissions": {
+      "POST /receive": [
+        "supplier",
+        "scanner",
+        "admin"
+      ],
+      "POST /ship": [
+        "storefront",
+        "scanner",
+        "admin"
+      ],
+      "POST /transfer": [
+        "scanner",
+        "admin"
+      ],
+      "POST /adjust": [
+        "scanner",
+        "admin"
+      ],
+      "GET /audit": [
+        "admin"
+      ]
+    },
+    "instances": [
+      {
+        "id": "stock-1",
+        "url": "http://stock-1:3000"
+      },
+      {
+        "id": "stock-2",
+        "url": "http://stock-2:3000"
+      }
+    ]
+  }
+}

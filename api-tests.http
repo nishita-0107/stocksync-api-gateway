@@ -1,0 +1,252 @@
+
+@base = http://localhost:8080
+@freeKey = demo-free-key
+@proKey = demo-pro-key
+@adminKey = demo-admin-key
+# business clients: online storefront, supplier (partner), warehouse scanner
+@storefrontKey = demo-storefront-key
+@supplierKey = demo-supplier-key
+@scannerKey = demo-scanner-key
+
+
+### 1. Gateway readiness (Redis + Postgres)
+GET {{base}}/ready
+
+
+### 2a. Stock service requires auth  ->  401
+GET {{base}}/api/stock/movements
+
+
+### 2b. Wrong key  ->  401
+GET {{base}}/api/stock/movements
+x-api-key: wrong-key
+
+
+### 2c. Valid key  ->  200
+GET {{base}}/api/stock/movements?limit=10
+x-api-key: {{proKey}}
+
+
+### 3. Get a JWT
+# @name login
+POST {{base}}/auth/token
+x-api-key: {{proKey}}
+
+
+### 3b. Use the JWT instead of the key
+GET {{base}}/api/stock/movements?limit=5
+Authorization: Bearer {{login.response.body.accessToken}}
+
+
+### 4. INVENTORY - list all items (cached 5 s by the gateway: repeat it and see X-Cache: HIT)
+GET {{base}}/api/inventory
+x-api-key: {{proKey}}
+
+
+### 4b. Filters: category, search, stock status (low,out), a single warehouse
+GET {{base}}/api/inventory?category=Electronics&status=low,out
+x-api-key: {{proKey}}
+
+###
+GET {{base}}/api/inventory?q=box&warehouse=WH-NORTH
+x-api-key: {{proKey}}
+
+
+### 4c. One SKU (bypassing the cache)
+GET {{base}}/api/inventory/ELE-1001
+x-api-key: {{proKey}}
+Cache-Control: no-cache
+
+
+### 4d. Dashboard summary: totals, per warehouse, per category, reorder alerts
+GET {{base}}/api/inventory/summary
+x-api-key: {{proKey}}
+
+
+### 4e. Warehouses
+GET {{base}}/api/inventory/warehouses
+x-api-key: {{proKey}}
+
+
+### 4f. Create an item  ->  201 (409 if the SKU exists). Stock starts at 0 everywhere.
+POST {{base}}/api/inventory
+x-api-key: {{scannerKey}}
+Content-Type: application/json
+
+{
+  "sku": "ELE-1099",
+  "name": "Webcam HD",
+  "category": "Electronics",
+  "unitCost": 49.99,
+  "reorderLevel": 20
+}
+
+
+### 4g. Update item metadata
+PATCH {{base}}/api/inventory/ELE-1099
+x-api-key: {{scannerKey}}
+Content-Type: application/json
+
+{ "reorderLevel": 25 }
+
+
+### 5. STOCK - receive goods  ->  201. Also purges the inventory cache (request 4 -> MISS)
+POST {{base}}/api/stock/receive
+x-api-key: {{supplierKey}}
+Content-Type: application/json
+Idempotency-Key: po-1001-line-1
+
+{ "sku": "ELE-1099", "warehouse": "WH-NORTH", "qty": 50, "reference": "PO-1001" }
+
+
+### 5b. Same request, same Idempotency-Key  ->  200 + idempotent-replay: true (not applied twice)
+POST {{base}}/api/stock/receive
+x-api-key: {{supplierKey}}
+Content-Type: application/json
+Idempotency-Key: po-1001-line-1
+
+{ "sku": "ELE-1099", "warehouse": "WH-NORTH", "qty": 50, "reference": "PO-1001" }
+
+
+### 5c. Ship  ->  201
+POST {{base}}/api/stock/ship
+x-api-key: {{storefrontKey}}
+Content-Type: application/json
+
+{ "sku": "ELE-1099", "warehouse": "WH-NORTH", "qty": 8, "reference": "SO-5001" }
+
+
+### 5d. Ship more than is on hand  ->  409 insufficient_stock (never goes negative)
+POST {{base}}/api/stock/ship
+x-api-key: {{storefrontKey}}
+Content-Type: application/json
+
+{ "sku": "ELE-1099", "warehouse": "WH-NORTH", "qty": 9999 }
+
+
+### 5e. Transfer between warehouses (atomic)
+POST {{base}}/api/stock/transfer
+x-api-key: {{scannerKey}}
+Content-Type: application/json
+
+{ "sku": "ELE-1099", "from": "WH-NORTH", "to": "WH-SOUTH", "qty": 10 }
+
+
+### 5f. Cycle-count adjustment (delta may be negative)
+POST {{base}}/api/stock/adjust
+x-api-key: {{scannerKey}}
+Content-Type: application/json
+
+{ "sku": "ELE-1099", "warehouse": "WH-SOUTH", "delta": -1, "reason": "damaged unit" }
+
+
+### 5g. Movement history for a SKU
+GET {{base}}/api/stock/movements?sku=ELE-1099
+x-api-key: {{proKey}}
+
+
+### 5h. Movements per minute (dashboard chart)
+GET {{base}}/api/stock/throughput?minutes=10
+x-api-key: {{proKey}}
+
+
+### 5i. Consistency audit: every stock level == sum of its ledger entries, none negative
+GET {{base}}/api/stock/audit
+x-api-key: {{adminKey}}
+
+
+### 5k. PERMISSIONS - a supplier may only receive stock: shipping  ->  403 forbidden
+POST {{base}}/api/stock/ship
+x-api-key: {{supplierKey}}
+Content-Type: application/json
+
+{ "sku": "ELE-1099", "warehouse": "WH-NORTH", "qty": 1 }
+
+
+### 5l. ...and the storefront may not adjust stock  ->  403 forbidden
+POST {{base}}/api/stock/adjust
+x-api-key: {{storefrontKey}}
+Content-Type: application/json
+
+{ "sku": "ELE-1099", "warehouse": "WH-NORTH", "delta": 100 }
+
+
+### 5j. Delete an item (admin only)
+DELETE {{base}}/api/inventory/ELE-1099
+x-api-key: {{adminKey}}
+
+
+### 6. RATE LIMITING - send this quickly 20+ times with the free key  ->  429
+GET {{base}}/api/inventory/ELE-1002
+x-api-key: {{freeKey}}
+
+
+### 7. TIMEOUT - the backend sleeps 4 s, the gateway waits max 3 s  ->  504 Gateway Timeout
+GET {{base}}/api/inventory/slow?ms=4000
+x-api-key: {{proKey}}
+
+
+### 8a. CHAOS - make inventory-2 fail every request (circuit opens, traffic moves to 1 and 3)
+POST {{base}}/admin/instances/inventory-2/chaos
+x-api-key: {{adminKey}}
+Content-Type: application/json
+
+{ "failRate": 1 }
+
+
+### 8b. Check the status of all services
+GET {{base}}/admin/services
+x-api-key: {{adminKey}}
+
+
+### 8c. Kill inventory-3 completely (health checks will mark it DOWN after ~6 s)
+POST {{base}}/admin/instances/inventory-3/chaos
+x-api-key: {{adminKey}}
+Content-Type: application/json
+
+{ "down": true }
+
+
+### 8d. Repair both instances
+POST {{base}}/admin/instances/inventory-2/chaos
+x-api-key: {{adminKey}}
+Content-Type: application/json
+
+{ "reset": true }
+
+###
+POST {{base}}/admin/instances/inventory-3/chaos
+x-api-key: {{adminKey}}
+Content-Type: application/json
+
+{ "reset": true }
+
+
+### 9. LOGS saved in PostgreSQL by the workers (latest 10 requests)
+GET {{base}}/admin/logs?limit=10
+x-api-key: {{adminKey}}
+
+
+### 9b. Only the errors (5xx)
+GET {{base}}/admin/logs?status=5xx&limit=10
+x-api-key: {{adminKey}}
+
+
+### 9c. Only the rate-limited requests (429)
+GET {{base}}/admin/logs?status=429&limit=10
+x-api-key: {{adminKey}}
+
+
+### 9d. Only stock-service traffic
+GET {{base}}/admin/logs?service=stock&limit=10
+x-api-key: {{adminKey}}
+
+
+### 10. Statistics (the same data the gateway dashboard shows)
+GET {{base}}/admin/stats
+x-api-key: {{adminKey}}
+
+
+### 11. Clear the whole cache
+POST {{base}}/admin/cache/purge
+x-api-key: {{adminKey}}

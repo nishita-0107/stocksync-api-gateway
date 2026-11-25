@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gateway Control Room</title>
+<style>
+  :root {
+    --bg: #0f1216; --panel: #171b21; --panel-2: #1e232b; --line: #2a313b;
+    --text: #e6e9ee; --muted: #8a94a3; --accent: #5aa9ff;
+    --ok: #3fb97c; --warn: #e3a83a; --bad: #e5564f; --info: #8b7cf6;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.45 system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+  header { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; padding: 14px 20px; border-bottom: 1px solid var(--line); background: var(--panel); position: sticky; top: 0; z-index: 2; }
+  header h1 { font-size: 16px; margin: 0; letter-spacing: .02em; }
+  header .meta { color: var(--muted); font-size: 12px; font-family: var(--mono); }
+  nav a { color: var(--muted); text-decoration: none; font-size: 13px; margin-right: 14px; }
+  nav a[aria-current] { color: var(--text); font-weight: 600; }
+  nav a:hover { color: var(--accent); }
+  .auth { display: flex; gap: 8px; align-items: center; }
+  input, select, button { font: inherit; color: var(--text); background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; }
+  button { cursor: pointer; } button:hover { border-color: var(--accent); }
+  button.small { padding: 2px 8px; font-size: 12px; }
+  main { padding: 18px 20px 40px; max-width: 1400px; margin: 0 auto; display: grid; gap: 18px; }
+  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+  .kpi { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+  .kpi .label { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; }
+  .kpi .value { font-size: 24px; font-weight: 600; font-variant-numeric: tabular-nums; margin-top: 4px; }
+  .kpi .sub { color: var(--muted); font-size: 12px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; overflow: hidden; }
+  .panel h2 { font-size: 13px; margin: 0 0 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 18px; }
+  @media (max-width: 520px) { .grid2 { grid-template-columns: 1fr; } main, header { padding-left: 16px; padding-right: 16px; } }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; color: var(--muted); font-weight: 500; padding: 6px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  td { padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: middle; font-variant-numeric: tabular-nums; }
+  .scroll { overflow-x: auto; }
+  .mono { font-family: var(--mono); font-size: 12px; }
+  .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; }
+  .pill { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; letter-spacing: .03em; }
+  .ok { color: var(--ok); } .warn { color: var(--warn); } .bad { color: var(--bad); } .muted { color: var(--muted); }
+  .bg-ok { background: color-mix(in srgb, var(--ok) 18%, transparent); color: var(--ok); }
+  .bg-warn { background: color-mix(in srgb, var(--warn) 18%, transparent); color: var(--warn); }
+  .bg-bad { background: color-mix(in srgb, var(--bad) 18%, transparent); color: var(--bad); }
+  .bg-info { background: color-mix(in srgb, var(--info) 18%, transparent); color: var(--info); }
+  .svc-title { margin: 14px 0 6px; font-weight: 600; } .svc-title:first-child { margin-top: 0; }
+  .svc-title .muted { font-weight: 400; font-size: 12px; }
+  .chaos { display: flex; gap: 4px; flex-wrap: wrap; }
+  .bar-legend { display: flex; gap: 14px; font-size: 12px; color: var(--muted); }
+  .bar-legend span::before { content: ''; display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; background: var(--c); }
+  .queue { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; text-align: center; }
+  .queue div { background: var(--panel-2); border-radius: 8px; padding: 8px 4px; }
+  .queue b { display: block; font-size: 18px; font-variant-numeric: tabular-nums; }
+  .queue small { color: var(--muted); font-size: 11px; text-transform: uppercase; }
+  .progress { height: 6px; background: var(--panel-2); border-radius: 3px; width: 80px; overflow: hidden; }
+  .progress > i { display: block; height: 100%; background: var(--accent); }
+  #banner { display: none; padding: 10px 14px; border-radius: 8px; background: color-mix(in srgb, var(--bad) 15%, transparent); color: var(--bad); border: 1px solid color-mix(in srgb, var(--bad) 40%, transparent); }
+  svg text { fill: var(--muted); font-size: 10px; font-family: var(--mono); }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <nav><a href="./" aria-current="page">Gateway Control Room</a><a href="./inventory.html">Inventory</a></nav>
+    <h1>Smart API Gateway · Control Room</h1>
+    <div class="meta" id="meta">not connected</div>
+  </div>
+  <form class="auth" id="authForm">
+    <input id="key" type="password" placeholder="Admin API key" autocomplete="off" size="18">
+    <button type="submit">Connect</button>
+  </form>
+</header>
+
+<main>
+  <div id="banner"></div>
+
+  <section class="kpis" id="kpis"></section>
+
+  <section class="panel">
+    <h2>Traffic, last 30 minutes
+      <span class="bar-legend"><span style="--c:var(--accent)">requests</span><span style="--c:var(--bad)">5xx</span><span style="--c:var(--warn)">rate limited</span></span>
+    </h2>
+    <div id="chart"></div>
+  </section>
+
+  <section class="panel">
+    <h2>Upstream services · load balancing, health &amp; circuit breakers</h2>
+    <div id="services" class="scroll"></div>
+  </section>
+
+  <section class="panel">
+    <h2>Log pipeline · gateway buffer → BullMQ queue → workers → PostgreSQL</h2>
+    <div id="queueLogs"></div>
+    <div class="muted" id="logPipeline" style="margin-top:8px;font-size:12px"></div>
+  </section>
+
+  <section class="panel">
+    <h2>Recent requests (PostgreSQL)
+      <select id="logFilter">
+        <option value="">all</option><option value="2xx">2xx</option><option value="4xx">4xx</option>
+        <option value="429">429</option><option value="5xx">5xx</option>
+      </select>
+    </h2>
+    <div id="logs" class="scroll"></div>
+  </section>
+</main>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const fmt = (n) => (n ?? 0).toLocaleString();
+  const store = { get(k) { try { return localStorage.getItem(k); } catch { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch {} } };
+
+  let apiKey = store.get('gw-admin-key') || '';
+  $('key').value = apiKey;
+  $('authForm').addEventListener('submit', (e) => { e.preventDefault(); apiKey = $('key').value.trim(); store.set('gw-admin-key', apiKey); refresh(); });
+  $('logFilter').addEventListener('change', refresh);
+
+  async function api(path, opts = {}) {
+    const res = await fetch(path, { ...opts, headers: { 'x-api-key': apiKey, 'content-type': 'application/json', ...(opts.headers || {}) } });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(body.error?.message || `HTTP ${res.status}`);
+    return body;
+  }
+
+  function banner(msg) { const b = $('banner'); b.style.display = msg ? 'block' : 'none'; b.textContent = msg || ''; }
+
+  function kpis(s) {
+    const t = s.metrics?.totals || {};
+    const total = t.requests || 0;
+    const errors = t.status_5xx || 0;
+    const hits = t.cache_hit || 0, misses = t.cache_miss || 0;
+    const lastMin = s.metrics?.timeline?.at(-2)?.requests ?? 0;
+    const instances = s.services.flatMap((x) => x.instances);
+    const up = instances.filter((i) => i.available).length;
+    const tiles = [
+      ['Total requests', fmt(total), `${fmt(lastMin)} in last full minute`],
+      ['Error rate (5xx)', total ? (errors / total * 100).toFixed(2) + '%' : '0%', `${fmt(errors)} errors`],
+      ['Latency p95', `${s.latency.p95} ms`, `p50 ${s.latency.p50} · p99 ${s.latency.p99} ms`],
+      ['Cache hit ratio', hits + misses ? (hits / (hits + misses) * 100).toFixed(1) + '%' : '–', `${fmt(hits)} hits · ${fmt(misses)} misses`],
+      ['Rate limited', fmt(t.rate_limited || 0), '429 responses'],
+      ['Instances up', `${up} / ${instances.length}`, up === instances.length ? 'all healthy' : 'degraded'],
+    ];
+    $('kpis').innerHTML = tiles.map(([l, v, sub]) => `<div class="kpi"><div class="label">${l}</div><div class="value">${v}</div><div class="sub">${sub}</div></div>`).join('');
+  }
+
+  function chart(timeline) {
+    if (!timeline) { $('chart').innerHTML = '<div class="muted">metrics unavailable (Redis down?)</div>'; return; }
+    const W = Math.max(320, $('chart').clientWidth), H = 150, pad = 22, n = timeline.length;
+    const max = Math.max(1, ...timeline.map((p) => p.requests));
+    const bw = (W - pad) / n;
+    const y = (v) => H - pad - (v / max) * (H - pad - 8);
+    let bars = '';
+    timeline.forEach((p, i) => {
+      const x = pad + i * bw + 1, w = Math.max(1, bw - 3);
+      const label = `${new Date(p.minute).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}: ${p.requests} req, ${p.errors} 5xx, ${p.rateLimited} limited`;
+      bars += `<g><title>${label}</title><rect x="${x}" y="${y(p.requests)}" width="${w}" height="${H - pad - y(p.requests)}" rx="2" fill="var(--accent)" opacity=".85"/>`;
+      if (p.rateLimited) bars += `<rect x="${x}" y="${y(p.rateLimited)}" width="${w}" height="${H - pad - y(p.rateLimited)}" rx="2" fill="var(--warn)"/>`;
+      if (p.errors) bars += `<rect x="${x}" y="${y(p.errors)}" width="${w}" height="${H - pad - y(p.errors)}" rx="2" fill="var(--bad)"/>`;
+      bars += '</g>';
+      if (i % 5 === 0) bars += `<text x="${x}" y="${H - 6}">${new Date(p.minute).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</text>`;
+    });
+    $('chart').innerHTML = `<svg width="100%" viewBox="0 0 ${W} ${H}" role="img" aria-label="Requests per minute">
+      <line x1="${pad}" x2="${W}" y1="${H - pad}" y2="${H - pad}" stroke="var(--line)"/>
+      <text x="0" y="12">${fmt(max)}</text>${bars}</svg>`;
+  }
+
+  const breakerPill = (b) => ({ CLOSED: 'bg-ok', HALF_OPEN: 'bg-warn', OPEN: 'bg-bad' }[b.state]);
+
+  function services(list) {
+    $('services').innerHTML = list.map((svc) => `
+      <div class="svc-title">${esc(svc.name)} <span class="muted mono">${esc(svc.prefix)} · ${esc(svc.strategy)} · auth ${esc(svc.auth)} · cache ${svc.cacheTtlSeconds ? svc.cacheTtlSeconds + 's' : 'off'} · retries ${svc.retries} · timeout ${svc.timeoutMs}ms</span></div>
+      <table><thead><tr><th>Instance</th><th>Health</th><th>Circuit</th><th>Active</th><th>Requests</th><th>Failures</th><th>Avg latency</th><th>Health check</th><th>Chaos</th></tr></thead><tbody>
+      ${svc.instances.map((i) => `<tr>
+        <td class="mono">${esc(i.id)}</td>
+        <td><span class="dot" style="background:var(--${i.healthy ? 'ok' : 'bad'})"></span>${i.healthy ? 'healthy' : 'down'}</td>
+        <td><span class="pill ${breakerPill(i.breaker)}">${i.breaker.state}</span>${i.breaker.state === 'OPEN' ? ` <span class="muted">${Math.ceil(i.breaker.retryInMs / 1000)}s</span>` : ''}</td>
+        <td>${i.activeConnections}</td><td>${fmt(i.totalRequests)}</td>
+        <td class="${i.totalFailures ? 'bad' : ''}">${fmt(i.totalFailures)}</td>
+        <td>${i.avgLatencyMs ?? '–'} ms</td>
+        <td class="muted">${i.health.lastError ? esc(i.health.lastError) : (i.health.lastLatencyMs ?? '–') + ' ms'}</td>
+        <td class="chaos">
+          <button class="small" data-chaos="${esc(i.id)}" data-body='{"down":true}'>kill</button>
+          <button class="small" data-chaos="${esc(i.id)}" data-body='{"failRate":0.7}'>500s</button>
+          <button class="small" data-chaos="${esc(i.id)}" data-body='{"latencyMs":4000}'>slow</button>
+          <button class="small" data-chaos="${esc(i.id)}" data-body='{"reset":true}'>reset</button>
+        </td></tr>`).join('')}
+      </tbody></table>`).join('');
+  }
+
+  $('services').addEventListener('click', async (e) => {
+    const btn = e.target.closest('[data-chaos]');
+    if (!btn) return;
+    try { await api(`/admin/instances/${encodeURIComponent(btn.dataset.chaos)}/chaos`, { method: 'POST', body: btn.dataset.body }); refresh(); }
+    catch (err) { banner(err.message); }
+  });
+
+  function queue(el, counts) {
+    if (!counts) { $(el).innerHTML = '<div class="muted">unavailable</div>'; return; }
+    $(el).innerHTML = `<div class="queue">${['waiting', 'active', 'delayed', 'completed', 'failed'].map((k) => `<div><b class="${k === 'failed' && counts[k] ? 'bad' : ''}">${fmt(counts[k])}</b><small>${k}</small></div>`).join('')}</div>`;
+  }
+
+  const statusClass = (s) => (s >= 500 ? 'bad' : s === 429 ? 'warn' : s >= 400 ? 'warn' : 'ok');
+  function logs(list) {
+    if (!list.length) { $('logs').innerHTML = '<div class="muted">No requests logged yet (logs are written asynchronously by the worker).</div>'; return; }
+    $('logs').innerHTML = `<table><thead><tr><th>Time</th><th>Method</th><th>Path</th><th>Status</th><th>Latency</th><th>Client</th><th>Service</th><th>Upstream</th><th>Cache</th><th>Error</th></tr></thead><tbody>
+      ${list.map((l) => `<tr><td class="muted mono">${new Date(l.ts).toLocaleTimeString()}</td><td class="mono">${esc(l.method)}</td>
+        <td class="mono">${esc(l.path)}</td><td class="${statusClass(l.status)}">${l.status}</td><td>${l.latency_ms} ms</td>
+        <td class="muted">${esc(l.client_id || 'anonymous')}</td><td>${esc(l.service || '')}</td><td class="mono">${esc(l.upstream || '')}</td><td>${esc(l.cache_status || '')}</td>
+        <td class="bad mono">${esc(l.error || '')}</td></tr>`).join('')}</tbody></table>`;
+  }
+
+  let timer;
+  async function refresh() {
+    clearTimeout(timer);
+    if (!apiKey) { banner('Enter an admin API key (demo: demo-admin-key) to connect.'); return; }
+    try {
+      const filter = $('logFilter').value;
+      const [s, l] = await Promise.all([
+        api('/admin/stats'),
+        api(`/admin/logs?limit=25${filter ? '&status=' + filter : ''}`),
+      ]);
+      banner('');
+      $('meta').textContent = `${s.gateway.id} · up ${s.gateway.uptimeSeconds}s · ${s.gateway.memoryMb} MB · redis ${s.gateway.redis}`;
+      kpis(s); chart(s.metrics?.timeline); services(s.services);
+      queue('queueLogs', s.queues.logs);
+      $('logPipeline').textContent = `log buffer: ${fmt(s.logPipeline.buffered)} buffered · ${fmt(s.logPipeline.shipped)} shipped · ${fmt(s.logPipeline.dropped)} dropped`;
+      logs(l.logs);
+    } catch (err) {
+      banner(`Cannot load stats: ${err.message}`);
+    }
+    timer = setTimeout(refresh, 2000);
+  }
+  refresh();
+})();
+</script>
+</body>
+</html>
